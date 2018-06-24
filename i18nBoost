@@ -1,0 +1,129 @@
+let http=require('http')
+let fs = require('fs')
+
+// http.createServer(function(req,res){
+//     res.write('hello');
+//     res.end();
+// }).listen(8080)
+
+
+let i18n = 'i18n.json' //set JSON Filename Here
+let cts = 'example.html' //set Output Filename Here
+
+let output = './output/'+ 'output.html' ;
+
+i18n ='./output/' + i18n ;
+
+
+
+
+i18nBoost(i18n, cts); // Run!
+
+
+//String.regexIndexOf Polyfill
+String.prototype.regexIndexOf = function (regex, startpos) {
+    var indexOf = this.substring(startpos || 0).search(regex);
+    return (indexOf >= 0) ? (indexOf + (startpos || 0)) : indexOf;
+}
+
+
+
+function i18nBoost(i18n) {
+
+//create JSON start
+    fs.readFile(cts, function (err, data) {
+
+        data = data.toString()
+
+        let x = data.match(new RegExp('[\u4e00-\u9fa5]+', 'g'))
+        let y = [];
+
+        for (let i = 0; i < x.length; i++) {
+            y.push(x[i])
+            x = x.filter(function (n) { return n !== x[i] })
+            i--;
+        }
+
+        let o = {}
+        o.messages = { 'zh-tw': {} }
+        for (let j = 0; j < y.length; j++) {
+
+            o.messages['zh-tw']['g' + j] = y[j]
+
+        }
+        o = JSON.stringify(o)
+
+        fs.writeFile(i18n, o, function (err) {
+            if (err) throw err;
+            console.log('JSON Created!');
+//create JSON end--
+
+
+//generate i18n start--
+            fs.readFile(i18n, function (err, data) {
+
+                if (err) return console.log(err)
+
+                else {
+                    fs.readFile(cts, function (err2, data2) {
+                        if (err2) return console.log(err2)
+
+                        else {
+                            let x = JSON.parse(data)
+                            let y = data2.toString()
+
+                            let z = x.messages['zh-tw']
+
+                            for (let prop in z) {
+
+                                while (y.regexIndexOf(new RegExp('[^\-\-][^\u4e00-\u9fa5]' + z[prop] + '[^\u4e00-\u9fa5]')) !== -1) {
+
+                                    let t = y.regexIndexOf(new RegExp('[^\u4e00-\u9fa5]' + z[prop] + '[^\u4e00-\u9fa5]')) + 1
+
+                                    let flag = 0
+                                    let flag3
+                                    let flag2
+                                    let res = '';
+
+                                    for (let i = t - 1; i > t - 20; i--) {
+
+                                        res += y[i]
+                                        if (y[i] == '"') { flag++; continue; }
+                                        if (y[i] == '=') { flag++; flag2 = i - 3; continue; }
+                                        if (y[i] == ' ' && flag == 2 && i < flag2) {
+                                            flag3 = 1
+
+                                            res = res.split("").reverse().join('')
+                                            res = res.substring(1, res.length)
+
+                                            break;
+                                        }
+
+                                    }
+                                    if (flag3) y = y.replace((res + z[prop]), ':' + res.trim() + '$t(\'' + prop + '\')')
+                                    else {
+                                        flag3 = 0
+                                        y = y.replace(z[prop], '{{$t(\'' + prop + '\')}}')
+
+                                    }
+
+                                }
+
+                            }
+                            fs.writeFile(output, y, function (err) {
+                                if (err) throw err;
+                                console.log('HTML Created!');
+                            });
+                        }
+
+                    })
+                }
+
+            });
+            //generate i18n end--
+
+        });
+    })
+
+
+}
