@@ -1,0 +1,33 @@
+let fs = require('fs');
+
+
+let cts = "example.cts"
+let i18nBoost = "i18nnn.json"
+
+fs.readFile(cts, function (err, data) {
+
+    data = data.toString()
+
+    let x = data.match(/[\u4e00-\u9fa5]+/g)
+    let y = [];
+
+    for (let i = 0; i < x.length; i++) {
+        y.push(x[i])
+        x = x.filter(function (n) { return n !== x[i] })
+        i--;
+    }
+
+    let o = {}
+    o.messages = { 'zh-tw': {} }
+    for (let j = 0; j < y.length; j++) {
+
+        o.messages['zh-tw']['g' + j] = y[j]
+
+    }
+    o = JSON.stringify(o)
+
+    fs.writeFile(i18nBoost, o, function (err) {
+        if (err) throw err;
+        console.log('Saved!');
+    });
+})
